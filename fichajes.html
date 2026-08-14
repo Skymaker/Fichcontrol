@@ -1,0 +1,2574 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Control Horario</title>
+<style>
+  :root {
+    --color-primary: #2563eb;
+    --color-primary-dark: #1d4ed8;
+    --color-bg: #f4f6fa;
+    --color-card: #ffffff;
+    --color-border: #dde3ec;
+    --color-text: #1f2937;
+    --color-text-light: #6b7280;
+    --color-danger: #dc2626;
+    --color-success: #16a34a;
+    --color-warning: #d97706;
+    --radius: 10px;
+    --shadow: 0 2px 8px rgba(0,0,0,0.06);
+
+    /* Colores personalizables de items (valores por defecto, sobrescribibles desde Configuracion) */
+    --color-item-presencial: #16a34a;
+    --color-item-teletrabajo: #2563eb;
+    --color-item-sindical: #0891b2;
+    --color-item-mixto: #a21caf;
+    --color-item-vacaciones: #f59e0b;
+    --color-item-permiso: #ec4899;
+    --color-item-asuntos: #7c3aed;
+    --color-item-otro: #64748b;
+    --color-item-festivo: #fef2f2;
+    --color-item-finde: #f5f3ff;
+    --color-item-reducido: #fffbeb;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    background: var(--color-bg);
+    color: var(--color-text);
+    font-size: 16px;
+  }
+
+  #app {
+    max-width: 1300px;
+    margin: 0 auto;
+    padding: 16px;
+  }
+
+  header.app-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    background: var(--color-card);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 14px 18px;
+    margin-bottom: 18px;
+  }
+
+  header.app-header h1 {
+    font-size: 1.25rem;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .header-tabs {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .header-tab-btn {
+    background: #eef1f6;
+    color: var(--color-text);
+    padding: 8px 14px;
+    font-size: 0.85rem;
+    border-radius: 8px;
+  }
+  .header-tab-btn.active {
+    background: var(--color-primary);
+    color: #fff;
+  }
+
+  .year-selector {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .year-selector label {
+    font-size: 0.9rem;
+    color: var(--color-text-light);
+  }
+
+  .year-selector input[type="number"] {
+    width: 100px;
+    padding: 8px 10px;
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    font-size: 1rem;
+  }
+
+  button {
+    cursor: pointer;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 16px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    transition: background 0.15s ease, transform 0.05s ease;
+  }
+
+  button:active { transform: scale(0.98); }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .btn-primary {
+    background: var(--color-primary);
+    color: #fff;
+  }
+  .btn-primary:hover { background: var(--color-primary-dark); }
+
+  .btn-secondary {
+    background: #eef1f6;
+    color: var(--color-text);
+  }
+  .btn-secondary:hover { background: #e2e6ee; }
+
+  .btn-danger {
+    background: #fde8e8;
+    color: var(--color-danger);
+  }
+  .btn-danger:hover { background: #fbd5d5; }
+
+  .btn-sm {
+    padding: 6px 10px;
+    font-size: 0.82rem;
+  }
+
+  main {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 18px;
+  }
+
+  @media (max-width: 900px) {
+    main {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  section.card {
+    background: var(--color-card);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 18px;
+  }
+
+  section.card h2 {
+    font-size: 1.05rem;
+    margin: 0 0 12px 0;
+    color: var(--color-text);
+  }
+
+  #status-bar {
+    margin-top: 14px;
+    font-size: 0.85rem;
+    color: var(--color-text-light);
+    background: var(--color-card);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 10px 16px;
+  }
+
+  #status-bar.ok { color: var(--color-success); }
+  #status-bar.error { color: var(--color-danger); }
+
+  /* ==================== MODAL GENERICO ==================== */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.45);
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    z-index: 1000;
+  }
+
+  .modal-overlay.open {
+    display: flex;
+  }
+
+  .modal-box {
+    background: var(--color-card);
+    border-radius: var(--radius);
+    max-width: 760px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+    padding: 20px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+  }
+
+  .modal-box.modal-dia {
+    max-width: 580px;
+  }
+
+  .modal-box header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 14px;
+    position: sticky;
+    top: 0;
+    background: var(--color-card);
+  }
+
+  .modal-box header h2 {
+    margin: 0;
+    font-size: 1.1rem;
+  }
+
+  .modal-close {
+    background: transparent;
+    border: none;
+    font-size: 1.4rem;
+    line-height: 1;
+    color: var(--color-text-light);
+    padding: 4px 8px;
+  }
+
+  footer.app-footer {
+    text-align: center;
+    color: var(--color-text-light);
+    font-size: 0.75rem;
+    margin-top: 24px;
+    padding-bottom: 20px;
+  }
+
+  @media (max-width: 480px) {
+    header.app-header h1 { font-size: 1.05rem; }
+    section.card { padding: 14px; }
+  }
+
+  /* ==================== CONFIG: SECCIONES / ACORDEON ==================== */
+  .config-section {
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    margin-bottom: 12px;
+    overflow: hidden;
+  }
+
+  .config-section-header {
+    background: #f8f9fb;
+    padding: 10px 14px;
+    font-weight: 600;
+    font-size: 0.92rem;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    user-select: none;
+  }
+
+  .config-section-header .chevron {
+    transition: transform 0.15s ease;
+    color: var(--color-text-light);
+  }
+
+  .config-section.collapsed .config-section-body {
+    display: none;
+  }
+
+  .config-section.collapsed .chevron {
+    transform: rotate(-90deg);
+  }
+
+  .config-section-body {
+    padding: 14px;
+  }
+
+  .form-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: flex-end;
+    margin-bottom: 12px;
+  }
+
+  .form-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+    min-width: 120px;
+  }
+
+  .form-field label {
+    font-size: 0.8rem;
+    color: var(--color-text-light);
+  }
+
+  .form-field input[type="text"],
+  .form-field input[type="date"],
+  .form-field input[type="time"],
+  .form-field input[type="number"],
+  .form-field select,
+  .form-field textarea {
+    padding: 8px 10px;
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    font-size: 0.92rem;
+    width: 100%;
+    font-family: inherit;
+  }
+
+  .checkbox-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  .checkbox-row input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+  }
+
+  .checkbox-row label {
+    font-size: 0.92rem;
+  }
+
+  /* ==================== TABLA FESTIVOS ==================== */
+  table.festivos-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.88rem;
+    margin-top: 8px;
+  }
+
+  table.festivos-table th, table.festivos-table td {
+    text-align: left;
+    padding: 8px 6px;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  table.festivos-table th {
+    color: var(--color-text-light);
+    font-weight: 600;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+  }
+
+  .festivos-empty {
+    color: var(--color-text-light);
+    font-size: 0.85rem;
+    padding: 10px 0;
+  }
+
+  .info-derivada {
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 0.85rem;
+    color: #1e40af;
+    margin-top: 8px;
+  }
+
+  .config-footer-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 16px;
+    padding-top: 14px;
+    border-top: 1px solid var(--color-border);
+  }
+
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.72rem;
+    font-weight: 600;
+  }
+
+  .badge-ok { background: #dcfce7; color: #166534; }
+  .badge-warn { background: #fef3c7; color: #92400e; }
+
+  .tag {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+  .tag-laborable { background: #dbeafe; color: #1e40af; }
+  .tag-festivo { background: #fee2e2; color: #991b1b; }
+  .tag-finde { background: #ede9fe; color: #5b21b6; }
+  .tag-reducido { background: #fef3c7; color: #92400e; }
+  .tag-normal { background: #dcfce7; color: #166534; }
+  .tag-sindical { background: #cffafe; color: #155e75; }
+  .tag-mixto { background: #fae8ff; color: #86198f; }
+  .tag-definitivo { background: #dcfce7; color: #166534; }
+  .tag-provisional { background: #fef3c7; color: #92400e; }
+
+  /* ==================== SINDICALES Y ROTACION (config) ==================== */
+  .patron-card {
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 10px;
+    background: #fbfcfe;
+  }
+  .patron-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+  .patron-card-header input[type="text"] {
+    font-weight: 600;
+    border: none;
+    background: transparent;
+    font-size: 0.95rem;
+    padding: 4px;
+    border-bottom: 1px dashed transparent;
+  }
+  .patron-card-header input[type="text"]:focus {
+    outline: none;
+    border-bottom: 1px dashed var(--color-primary);
+  }
+  .dias-semana-toggle {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .dia-toggle-btn {
+    flex: 1;
+    min-width: 70px;
+    padding: 8px 4px;
+    border-radius: 6px;
+    border: 1px solid var(--color-border);
+    background: #fff;
+    font-size: 0.78rem;
+    text-align: center;
+    cursor: pointer;
+    font-weight: 600;
+  }
+  .dia-toggle-btn.presencial {
+    background: #dcfce7;
+    border-color: #86efac;
+    color: #166534;
+  }
+  .dia-toggle-btn.teletrabajo {
+    background: #dbeafe;
+    border-color: #93c5fd;
+    color: #1e40af;
+  }
+  .rotacion-meses-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 8px;
+    margin-top: 10px;
+  }
+  .rotacion-mes-item {
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    padding: 6px 8px;
+    font-size: 0.78rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #fff;
+  }
+  .rotacion-mes-item strong { font-weight: 600; }
+
+  /* ==================== CONFIG: COLORES PERSONALIZABLES ==================== */
+  .colores-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 10px;
+  }
+  .color-item-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    padding: 8px 10px;
+    background: #fff;
+  }
+  .color-item-row input[type="color"] {
+    width: 34px;
+    height: 34px;
+    border: none;
+    border-radius: 6px;
+    padding: 0;
+    cursor: pointer;
+    background: none;
+  }
+  .color-item-row label {
+    font-size: 0.82rem;
+    flex: 1;
+  }
+  #btn-restaurar-colores {
+    margin-top: 10px;
+  }
+
+  /* ==================== CALENDARIO MENSUAL ==================== */
+  .cal-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .cal-nav .cal-mes-actual {
+    font-weight: 700;
+    font-size: 1rem;
+    min-width: 160px;
+    text-align: center;
+  }
+
+  .cal-leyenda {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    font-size: 0.72rem;
+    margin-bottom: 10px;
+    color: var(--color-text-light);
+  }
+
+  .cal-leyenda span {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .cal-leyenda .dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    display: inline-block;
+  }
+
+  .calendario-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 6px;
+  }
+
+  .cal-dow {
+    text-align: center;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--color-text-light);
+    text-transform: uppercase;
+    padding-bottom: 4px;
+  }
+
+  .cal-day {
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    min-height: 78px;
+    padding: 6px;
+    cursor: pointer;
+    background: #fff;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    transition: box-shadow 0.1s ease, transform 0.05s ease;
+    position: relative;
+  }
+
+  .cal-day:hover {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    transform: translateY(-1px);
+  }
+
+  .cal-day.cal-day-empty {
+    background: transparent;
+    border: none;
+    cursor: default;
+  }
+  .cal-day.cal-day-empty:hover {
+    box-shadow: none;
+    transform: none;
+  }
+
+  .cal-day .cal-day-num {
+    font-size: 0.85rem;
+    font-weight: 700;
+  }
+
+  .cal-day .cal-day-tags {
+    display: flex;
+    gap: 3px;
+    flex-wrap: wrap;
+  }
+
+  .cal-mini-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+  }
+
+  .cal-day .cal-day-desfase {
+    font-size: 0.68rem;
+    font-weight: 700;
+    margin-top: auto;
+  }
+  .cal-day-desfase.positivo { color: var(--color-success); }
+  .cal-day-desfase.negativo { color: var(--color-danger); }
+
+  @media (max-width: 700px) {
+    .cal-day { min-height: 58px; font-size: 0.8rem; }
+    .cal-dow { font-size: 0.62rem; }
+  }
+
+  /* ==================== FORMULARIO DE DIA ==================== */
+  .tipo-dia-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+
+  .tipo-dia-btn {
+    padding: 10px 6px;
+    border-radius: 8px;
+    border: 2px solid var(--color-border);
+    background: #fff;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-align: center;
+    cursor: pointer;
+  }
+
+  .tipo-dia-btn.selected {
+    border-color: var(--color-primary);
+    background: #eff6ff;
+    color: var(--color-primary-dark);
+  }
+
+  .resumen-dia-info {
+    background: #f8f9fb;
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 0.82rem;
+    margin-bottom: 14px;
+    border: 1px solid var(--color-border);
+  }
+
+  .resumen-dia-info .fila {
+    display: flex;
+    justify-content: space-between;
+    padding: 2px 0;
+  }
+
+  .form-error-dia {
+    color: var(--color-danger);
+    font-size: 0.82rem;
+    margin-bottom: 10px;
+    display: none;
+  }
+
+  .otro-descripcion-field { display: none; }
+
+  .planificacion-box {
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    background: #fbfcfe;
+    margin-bottom: 14px;
+  }
+
+  /* ==================== PANEL DE BALANCE ANUAL ==================== */
+  .vista-principal { display: block; }
+  .vista-principal.hidden { display: none; }
+
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 12px;
+    margin-bottom: 18px;
+  }
+
+  .kpi-card {
+    background: #fff;
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    padding: 14px;
+  }
+
+  .kpi-card .kpi-label {
+    font-size: 0.72rem;
+    color: var(--color-text-light);
+    text-transform: uppercase;
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+
+  .kpi-card .kpi-value {
+    font-size: 1.4rem;
+    font-weight: 700;
+  }
+
+  .kpi-value.positivo { color: var(--color-success); }
+  .kpi-value.negativo { color: var(--color-danger); }
+
+  table.tabla-balance {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.82rem;
+  }
+  table.tabla-balance th, table.tabla-balance td {
+    padding: 7px 8px;
+    text-align: right;
+    border-bottom: 1px solid var(--color-border);
+  }
+  table.tabla-balance th:first-child, table.tabla-balance td:first-child {
+    text-align: left;
+  }
+  table.tabla-balance th {
+    color: var(--color-text-light);
+    font-size: 0.7rem;
+    text-transform: uppercase;
+  }
+  table.tabla-balance tr.fila-total {
+    font-weight: 700;
+    background: #f8f9fb;
+  }
+  table.tabla-balance td.positivo { color: var(--color-success); }
+  table.tabla-balance td.negativo { color: var(--color-danger); }
+
+  .chart-container {
+    margin-top: 20px;
+    background: #fff;
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    padding: 14px;
+  }
+
+  .chart-container h3 {
+    font-size: 0.9rem;
+    margin: 0 0 10px 0;
+  }
+
+  #canvas-desfase-mensual {
+    width: 100%;
+    max-width: 100%;
+    height: 220px;
+    display: block;
+  }
+
+  .progreso-anual-bar {
+    background: #eef1f6;
+    border-radius: 8px;
+    height: 16px;
+    overflow: hidden;
+    margin-top: 8px;
+  }
+  .progreso-anual-bar .fill {
+    height: 100%;
+    background: var(--color-primary);
+  }
+</style>
+</head>
+<body>
+
+<div id="app">
+
+  <header class="app-header">
+    <h1>🗓️ Control Horario</h1>
+    <div class="header-tabs">
+      <button id="tab-calendario" class="header-tab-btn active">Calendario</button>
+      <button id="tab-balance" class="header-tab-btn">Balance anual</button>
+    </div>
+    <div class="year-selector">
+      <label for="input-year">Año:</label>
+      <input type="number" id="input-year" min="2000" max="2100" step="1">
+    </div>
+    <button id="btn-open-config" class="btn-secondary">⚙️ Configuración</button>
+  </header>
+
+  <div class="vista-principal" id="vista-calendario">
+    <main>
+      <section class="card" id="seccion-calendario">
+        <h2>Calendario</h2>
+        <div class="cal-nav">
+          <button id="btn-mes-anterior" class="btn-secondary btn-sm">&larr; Anterior</button>
+          <div class="cal-mes-actual" id="cal-mes-actual">-</div>
+          <button id="btn-mes-siguiente" class="btn-secondary btn-sm">Siguiente &rarr;</button>
+        </div>
+        <div class="cal-leyenda" id="cal-leyenda"></div>
+        <div class="calendario-grid" id="calendario-dow-row"></div>
+        <div class="calendario-grid" id="calendario-grid" style="margin-top:4px;"></div>
+      </section>
+
+      <section class="card" id="seccion-resumen">
+        <h2>Resumen del mes</h2>
+        <div id="resumen-mes-contenido"></div>
+      </section>
+    </main>
+  </div>
+
+  <div class="vista-principal hidden" id="vista-balance">
+    <section class="card">
+      <h2>Balance anual <span id="balance-anio-label" style="font-weight:400;color:var(--color-text-light);"></span></h2>
+
+      <div class="kpi-grid" id="kpi-grid"></div>
+
+      <div style="overflow-x:auto;">
+        <table class="tabla-balance" id="tabla-balance-mensual">
+          <thead>
+            <tr>
+              <th>Mes</th>
+              <th>Teóricas</th>
+              <th>Reales</th>
+              <th>Desfase</th>
+              <th>Sindicales</th>
+              <th>% cumplido</th>
+            </tr>
+          </thead>
+          <tbody id="tbody-balance-mensual"></tbody>
+        </table>
+      </div>
+
+      <div class="chart-container">
+        <h3>Evolución del desfase mensual</h3>
+        <canvas id="canvas-desfase-mensual"></canvas>
+      </div>
+
+      <div class="chart-container">
+        <h3>Progreso hacia el objetivo teórico anual</h3>
+        <div class="progreso-anual-bar">
+          <div class="fill" id="progreso-anual-fill" style="width:0%;"></div>
+        </div>
+        <p style="font-size:0.8rem;color:var(--color-text-light); margin-top:6px;" id="progreso-anual-texto"></p>
+      </div>
+    </section>
+  </div>
+
+  <div id="status-bar">Inicializando base de datos...</div>
+
+  <footer class="app-footer">
+    Control Horario &mdash; Sindicales en objetivo + colores personalizables + planificación diaria
+  </footer>
+
+</div>
+
+<!-- ================= MODAL DE CONFIGURACION ================= -->
+<div class="modal-overlay" id="modal-config">
+  <div class="modal-box">
+    <header>
+      <h2>Configuración</h2>
+      <button class="modal-close" id="btn-close-config" aria-label="Cerrar">&times;</button>
+    </header>
+
+    <div class="config-section" data-section="generales">
+      <div class="config-section-header">
+        <span>1. Datos generales</span>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="config-section-body">
+        <div class="checkbox-row">
+          <input type="checkbox" id="chk-hijos-menores">
+          <label for="chk-hijos-menores">Tengo hijos/as menores de 13 años</label>
+        </div>
+        <p style="font-size:0.8rem;color:var(--color-text-light);margin:0;">
+          Este parámetro afecta a la flexibilidad diaria y al cálculo del periodo estival.
+        </p>
+      </div>
+    </div>
+
+    <div class="config-section" data-section="normal">
+      <div class="config-section-header">
+        <span>2. Horario normal</span>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="config-section-body">
+        <div class="form-row">
+          <div class="form-field">
+            <label for="cfg-horas-teoricas">Horas teóricas diarias</label>
+            <input type="number" id="cfg-horas-teoricas" min="1" max="12" step="0.5" value="7">
+          </div>
+          <div class="form-field">
+            <label for="cfg-entrada-min">Entrada desde</label>
+            <input type="time" id="cfg-entrada-min" value="07:30">
+          </div>
+          <div class="form-field">
+            <label for="cfg-salida-max">Salida hasta</label>
+            <input type="time" id="cfg-salida-max" value="18:00">
+          </div>
+          <div class="form-field">
+            <label for="cfg-horas-minimas">Mínimo horas/día</label>
+            <input type="number" id="cfg-horas-minimas" min="1" max="12" step="0.5" value="5">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="config-section" data-section="reducido">
+      <div class="config-section-header">
+        <span>3. Horario reducido (San Isidro y verano)</span>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="config-section-body">
+        <div class="form-row">
+          <div class="form-field">
+            <label for="cfg-horas-reducidas">Horas jornada reducida</label>
+            <input type="number" id="cfg-horas-reducidas" min="1" max="12" step="0.5" value="6">
+          </div>
+        </div>
+        <div id="info-san-isidro" class="info-derivada">
+          Semana de San Isidro: <strong id="txt-semana-si">-</strong>
+        </div>
+        <div id="info-periodo-estival" class="info-derivada">
+          Periodo estival: <strong id="txt-periodo-estival">-</strong>
+        </div>
+      </div>
+    </div>
+
+    <div class="config-section" data-section="sindicales">
+      <div class="config-section-header">
+        <span>4. Horas sindicales</span>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="config-section-body">
+        <div class="checkbox-row">
+          <input type="checkbox" id="chk-tiene-sindicales">
+          <label for="chk-tiene-sindicales">Tengo horas sindicales asignadas</label>
+        </div>
+        <div id="bloque-sindicales-meses" style="display:none;">
+          <p style="font-size:0.8rem;color:var(--color-text-light);margin:0 0 8px 0;">
+            Bolsa mensual de horas sindicales (en horas completas). No se acumula de un mes a otro
+            y no se permite saldo negativo. Las horas sindicales cuentan como horas efectivas
+            de trabajo a efectos del objetivo mensual/anual.
+          </p>
+          <div class="form-row" id="grid-sindicales-meses" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:10px;">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="config-section collapsed" data-section="rotacion">
+      <div class="config-section-header">
+        <span>5. Presencialidad / teletrabajo (rotación)</span>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="config-section-body">
+        <p style="font-size:0.85rem;color:var(--color-text-light); margin-top:0;">
+          Define patrones de días presenciales/teletrabajo. Se asignan de forma cíclica a los meses.
+        </p>
+        <div id="lista-patrones"></div>
+        <button id="btn-add-patron" class="btn-secondary btn-sm" style="margin-top:6px;">+ Añadir patrón</button>
+        <h4 style="font-size:0.85rem; margin:16px 0 4px 0;">Asignación resultante por mes</h4>
+        <div class="rotacion-meses-grid" id="rotacion-meses-grid"></div>
+      </div>
+    </div>
+
+    <div class="config-section collapsed" data-section="colores">
+      <div class="config-section-header">
+        <span>6. Colores personalizados</span>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="config-section-body">
+        <p style="font-size:0.85rem;color:var(--color-text-light); margin-top:0;">
+          Personaliza el color de cada tipo de día/estado en el calendario y la leyenda.
+        </p>
+        <div class="colores-grid" id="colores-grid"></div>
+        <button id="btn-restaurar-colores" class="btn-secondary btn-sm">Restaurar colores por defecto</button>
+      </div>
+    </div>
+
+    <div class="config-section" data-section="festivos">
+      <div class="config-section-header">
+        <span>7. Festivos del año <span id="badge-anio-festivos" class="badge badge-ok"></span></span>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="config-section-body">
+        <div class="form-row">
+          <div class="form-field" style="flex:1.5;">
+            <label for="input-festivo-fecha">Fecha</label>
+            <input type="date" id="input-festivo-fecha">
+          </div>
+          <div class="form-field" style="flex:2;">
+            <label for="input-festivo-nombre">Nombre del festivo</label>
+            <input type="text" id="input-festivo-nombre" placeholder="Ej. San Isidro">
+          </div>
+          <div class="form-field" style="flex:0 0 auto;">
+            <label>&nbsp;</label>
+            <button id="btn-add-festivo" class="btn-primary btn-sm">Añadir</button>
+          </div>
+        </div>
+        <div id="festivo-form-error" style="color:var(--color-danger); font-size:0.8rem; display:none; margin-bottom:8px;"></div>
+
+        <table class="festivos-table" id="tabla-festivos">
+          <thead>
+            <tr>
+              <th style="width:110px;">Fecha</th>
+              <th>Nombre</th>
+              <th style="width:70px;"></th>
+            </tr>
+          </thead>
+          <tbody id="tbody-festivos">
+          </tbody>
+        </table>
+        <div id="festivos-empty" class="festivos-empty" style="display:none;">
+          No hay festivos registrados para este año. Añade el primero arriba.
+        </div>
+      </div>
+    </div>
+
+    <div class="config-section collapsed" data-section="exportar">
+      <div class="config-section-header">
+        <span>8. Exportar / Importar configuración</span>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="config-section-body">
+        <p style="font-size:0.85rem;color:var(--color-text-light);">
+          La exportación/importación del archivo JSON de configuración se implementará en una fase posterior.
+        </p>
+        <div class="form-row">
+          <button class="btn-secondary btn-sm" disabled>Exportar</button>
+          <button class="btn-secondary btn-sm" disabled>Importar</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="config-footer-actions">
+      <button id="btn-guardar-config" class="btn-primary">Guardar configuración</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= MODAL DE REGISTRO DIARIO ================= -->
+<div class="modal-overlay" id="modal-dia">
+  <div class="modal-box modal-dia">
+    <header>
+      <h2 id="modal-dia-titulo">Día</h2>
+      <button class="modal-close" id="btn-close-dia" aria-label="Cerrar">&times;</button>
+    </header>
+
+    <div class="resumen-dia-info" id="resumen-dia-info"></div>
+
+    <div class="form-error-dia" id="dia-form-error"></div>
+
+    <h4 style="font-size:0.85rem; margin:0 0 8px 0;">Tipo de día</h4>
+    <div class="tipo-dia-grid" id="tipo-dia-grid">
+      <button type="button" class="tipo-dia-btn" data-tipo="trabajo">Trabajo</button>
+      <button type="button" class="tipo-dia-btn" data-tipo="sindical">Sindical</button>
+      <button type="button" class="tipo-dia-btn" data-tipo="mixto">Mixto</button>
+      <button type="button" class="tipo-dia-btn" data-tipo="vacaciones">Vacaciones</button>
+      <button type="button" class="tipo-dia-btn" data-tipo="permiso">Permiso</button>
+      <button type="button" class="tipo-dia-btn" data-tipo="asuntos_propios">Asuntos propios</button>
+      <button type="button" class="tipo-dia-btn" data-tipo="otro">Otro</button>
+    </div>
+
+    <div class="form-field otro-descripcion-field" id="otro-descripcion-field">
+      <label for="input-otro-descripcion">Describe la situación</label>
+      <input type="text" id="input-otro-descripcion" placeholder="Ej. Huelga, baja médica...">
+    </div>
+
+    <div class="planificacion-box" id="bloque-planificacion">
+      <h4 style="font-size:0.85rem; margin:0 0 8px 0;">Planificación del día</h4>
+      <p style="font-size:0.78rem;color:var(--color-text-light); margin:0 0 8px 0;">
+        Introduce la entrada/salida prevista. Si al guardar coincide exactamente con el marcaje real,
+        el día se marcará como <strong>Definitivo</strong>; si no coincide, prevalecerán las horas reales
+        y quedará como <strong>Provisional</strong>.
+      </p>
+      <div class="form-row">
+        <div class="form-field">
+          <label for="input-plan-entrada">Entrada planificada</label>
+          <input type="time" id="input-plan-entrada">
+        </div>
+        <div class="form-field">
+          <label for="input-plan-salida">Salida planificada</label>
+          <input type="time" id="input-plan-salida">
+        </div>
+      </div>
+      <div id="estado-planificacion-badge"></div>
+    </div>
+
+    <div id="bloque-marcaje-real">
+      <h4 style="font-size:0.85rem; margin:14px 0 8px 0;">Marcaje real</h4>
+      <div class="form-row">
+        <div class="form-field">
+          <label for="input-real-entrada">Entrada</label>
+          <input type="time" id="input-real-entrada">
+        </div>
+        <div class="form-field">
+          <label for="input-real-salida">Salida</label>
+          <input type="time" id="input-real-salida">
+        </div>
+      </div>
+    </div>
+
+    <div id="bloque-sindical-dia">
+      <h4 style="font-size:0.85rem; margin:14px 0 8px 0;">Franja de horas sindicales</h4>
+      <div class="form-row">
+        <div class="form-field">
+          <label for="input-dia-sindical-inicio">Inicio</label>
+          <input type="time" id="input-dia-sindical-inicio">
+        </div>
+        <div class="form-field">
+          <label for="input-dia-sindical-fin">Fin</label>
+          <input type="time" id="input-dia-sindical-fin">
+        </div>
+      </div>
+      <div class="info-derivada" id="info-sindical-dia" style="display:none;"></div>
+    </div>
+
+    <h4 style="font-size:0.85rem; margin:14px 0 8px 0;">Notas</h4>
+    <div class="form-field">
+      <textarea id="input-dia-notas" rows="3" placeholder="Anotaciones libres sobre este día"></textarea>
+    </div>
+
+    <div class="config-footer-actions">
+      <button id="btn-eliminar-dia" class="btn-danger" style="margin-right:auto;">Eliminar registro</button>
+      <button id="btn-guardar-dia" class="btn-primary">Guardar día</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* =========================================================
+     CAPA DE DATOS: IndexedDB (heredado)
+     ========================================================= */
+
+  const DB_NAME = "ControlHorarioDB";
+  const DB_VERSION = 1;
+
+  const STORE_CONFIG = "configuracion";
+  const STORE_FESTIVOS = "festivos";
+  const STORE_REGISTROS = "registrosDiarios";
+
+  let dbInstance = null;
+
+  function initDB() {
+    return new Promise(function (resolve, reject) {
+      if (dbInstance) { resolve(dbInstance); return; }
+      const request = indexedDB.open(DB_NAME, DB_VERSION);
+
+      request.onupgradeneeded = function (event) {
+        const db = event.target.result;
+        if (!db.objectStoreNames.contains(STORE_CONFIG)) {
+          db.createObjectStore(STORE_CONFIG, { keyPath: "anio" });
+        }
+        if (!db.objectStoreNames.contains(STORE_FESTIVOS)) {
+          const festivosStore = db.createObjectStore(STORE_FESTIVOS, { keyPath: "id", autoIncrement: true });
+          festivosStore.createIndex("por_anio", "anio", { unique: false });
+          festivosStore.createIndex("por_anio_fecha", ["anio", "fecha"], { unique: false });
+        }
+        if (!db.objectStoreNames.contains(STORE_REGISTROS)) {
+          const registrosStore = db.createObjectStore(STORE_REGISTROS, { keyPath: "fecha" });
+          registrosStore.createIndex("por_anio", "anio", { unique: false });
+        }
+      };
+
+      request.onsuccess = function (event) {
+        dbInstance = event.target.result;
+        dbInstance.onversionchange = function () { dbInstance.close(); dbInstance = null; };
+        resolve(dbInstance);
+      };
+      request.onerror = function (event) { reject(event.target.error || new Error("Error desconocido al abrir IndexedDB")); };
+      request.onblocked = function () { reject(new Error("Apertura de IndexedDB bloqueada por otra pestana/version abierta.")); };
+    });
+  }
+
+  function getRecord(storeName, key) {
+    return initDB().then(function (db) {
+      return new Promise(function (resolve, reject) {
+        const req = db.transaction(storeName, "readonly").objectStore(storeName).get(key);
+        req.onsuccess = function () { resolve(req.result || null); };
+        req.onerror = function () { reject(req.error); };
+      });
+    });
+  }
+
+  function putRecord(storeName, record) {
+    return initDB().then(function (db) {
+      return new Promise(function (resolve, reject) {
+        const req = db.transaction(storeName, "readwrite").objectStore(storeName).put(record);
+        req.onsuccess = function () { resolve(req.result); };
+        req.onerror = function () { reject(req.error); };
+      });
+    });
+  }
+
+  function deleteRecord(storeName, key) {
+    return initDB().then(function (db) {
+      return new Promise(function (resolve, reject) {
+        const req = db.transaction(storeName, "readwrite").objectStore(storeName).delete(key);
+        req.onsuccess = function () { resolve(true); };
+        req.onerror = function () { reject(req.error); };
+      });
+    });
+  }
+
+  function getAllByIndex(storeName, indexName, indexValue) {
+    return initDB().then(function (db) {
+      return new Promise(function (resolve, reject) {
+        const store = db.transaction(storeName, "readonly").objectStore(storeName);
+        let req;
+        if (indexName) {
+          const idx = store.index(indexName);
+          req = indexValue === undefined ? idx.getAll() : idx.getAll(IDBKeyRange.only(indexValue));
+        } else {
+          req = store.getAll();
+        }
+        req.onsuccess = function () { resolve(req.result || []); };
+        req.onerror = function () { reject(req.error); };
+      });
+    });
+  }
+
+  function getAllRecords(storeName) { return getAllByIndex(storeName, null, undefined); }
+
+  /* =========================================================
+     UTILIDADES DE FECHA
+     ========================================================= */
+
+  function pad2(n) { return n < 10 ? "0" + n : "" + n; }
+  function toISODate(y, m, d) { return y + "-" + pad2(m) + "-" + pad2(d); }
+  function parseISODate(fechaISO) {
+    const partes = fechaISO.split("-").map(Number);
+    return new Date(partes[0], partes[1] - 1, partes[2]);
+  }
+  function nombreDiaSemana(fechaISO) {
+    const dias = ["Domingo","Lunes","Martes","Mi\u00e9rcoles","Jueves","Viernes","S\u00e1bado"];
+    return dias[parseISODate(fechaISO).getDay()];
+  }
+  function esFinDeSemana(fechaISO) {
+    const dow = parseISODate(fechaISO).getDay();
+    return dow === 0 || dow === 6;
+  }
+  function fechaEnRangoInclusive(fechaISO, inicioISO, finISO) {
+    return fechaISO >= inicioISO && fechaISO <= finISO;
+  }
+  function getSemanaSanIsidro(anio) {
+    const fecha15 = new Date(anio, 4, 15);
+    let diaSemana = fecha15.getDay();
+    let refDate = new Date(fecha15);
+    if (diaSemana === 0 || diaSemana === 6) {
+      const diasAtras = diaSemana === 0 ? 2 : 1;
+      refDate.setDate(refDate.getDate() - diasAtras);
+      diaSemana = refDate.getDay();
+    }
+    const offsetALunes = diaSemana === 0 ? -6 : (1 - diaSemana);
+    const lunes = new Date(refDate);
+    lunes.setDate(refDate.getDate() + offsetALunes);
+    const viernes = new Date(lunes);
+    viernes.setDate(lunes.getDate() + 4);
+    return {
+      inicio: toISODate(lunes.getFullYear(), lunes.getMonth() + 1, lunes.getDate()),
+      fin: toISODate(viernes.getFullYear(), viernes.getMonth() + 1, viernes.getDate())
+    };
+  }
+  function getPeriodoEstival(anio, tieneHijosMenores) {
+    if (tieneHijosMenores) return { inicio: toISODate(anio, 6, 1), fin: toISODate(anio, 9, 30) };
+    return { inicio: toISODate(anio, 6, 15), fin: toISODate(anio, 9, 15) };
+  }
+  function formatoFechaLegible(fechaISO) {
+    const [y, m, d] = fechaISO.split("-");
+    const meses = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
+    return d + " " + meses[parseInt(m, 10) - 1] + " " + y;
+  }
+
+  /* =========================================================
+     NUCLEO: CALCULO DE HORAS TEORICAS POR DIA
+     ========================================================= */
+
+  function getHorasTeoricasDia(fechaISO, config, listaFestivos) {
+    const anio = parseInt(fechaISO.split("-")[0], 10);
+    const finde = esFinDeSemana(fechaISO);
+    const festivo = (listaFestivos || []).find(function (f) { return f.fecha === fechaISO; });
+    const esFestivo = !!festivo;
+
+    const resultado = {
+      fecha: fechaISO, esFestivo: esFestivo, esFinDeSemana: finde,
+      esLaborable: !finde && !esFestivo, tipoJornada: "ninguna",
+      motivoReducida: null, horasTeoricas: 0,
+      nombreFestivo: esFestivo ? festivo.nombre : null
+    };
+    if (!resultado.esLaborable) return resultado;
+
+    const horasNormales = (config && config.horasTeoricas != null) ? config.horasTeoricas : 7;
+    const horasReducidas = (config && config.horasReducidas != null) ? config.horasReducidas : 6;
+    const tieneHijos = !!(config && config.tieneHijosMenores);
+
+    const semanaSI = getSemanaSanIsidro(anio);
+    const enSemanaSanIsidro = fechaEnRangoInclusive(fechaISO, semanaSI.inicio, semanaSI.fin);
+    const periodoEstival = getPeriodoEstival(anio, tieneHijos);
+    const enPeriodoEstival = fechaEnRangoInclusive(fechaISO, periodoEstival.inicio, periodoEstival.fin);
+
+    if (enSemanaSanIsidro) {
+      resultado.tipoJornada = "reducida"; resultado.motivoReducida = "san_isidro"; resultado.horasTeoricas = horasReducidas;
+    } else if (enPeriodoEstival) {
+      resultado.tipoJornada = "reducida"; resultado.motivoReducida = "estival"; resultado.horasTeoricas = horasReducidas;
+    } else {
+      resultado.tipoJornada = "normal"; resultado.horasTeoricas = horasNormales;
+    }
+    return resultado;
+  }
+
+  /* =========================================================
+     NUCLEO: HORAS SINDICALES
+     ========================================================= */
+
+  function horaAMinutos(hhmm) {
+    const [h, m] = hhmm.split(":").map(Number);
+    return h * 60 + m;
+  }
+  function calcularHorasSindicalesFranja(horaInicio, horaFin) {
+    if (!horaInicio || !horaFin) return 0;
+    const minutos = horaAMinutos(horaFin) - horaAMinutos(horaInicio);
+    if (minutos <= 0) return 0;
+    return Math.round((minutos / 60) * 100) / 100;
+  }
+  function clasificarDiaPorSindical(horasSindicales, horasTeoricasDia) {
+    if (horasSindicales <= 0) return "trabajo";
+    if (horasSindicales >= horasTeoricasDia && horasTeoricasDia > 0) return "sindical";
+    return "mixto";
+  }
+  function calcularHorasSindicalesUsadasMes(registros, anio, mes, excluirFecha) {
+    const prefijo = anio + "-" + pad2(mes) + "-";
+    let total = 0;
+    registros.forEach(function (r) {
+      if (r.fecha.indexOf(prefijo) === 0 && r.fecha !== excluirFecha) total += (r.horasSindicales || 0);
+    });
+    return Math.round(total * 100) / 100;
+  }
+
+  /* =========================================================
+     NUCLEO: ROTACION PRESENCIAL / TELETRABAJO
+     ========================================================= */
+
+  const DIAS_SEMANA_KEYS = ["L", "M", "X", "J", "V"];
+  const DIAS_SEMANA_LABEL = { L: "Lun", M: "Mar", X: "Mi\u00e9", J: "Jue", V: "Vie" };
+
+  function patronPorDefecto(nombre) {
+    return { nombre: nombre, dias: { L: "presencial", M: "presencial", X: "presencial", J: "presencial", V: "presencial" } };
+  }
+  function getPatronDelMes(patrones, mes) {
+    if (!patrones || patrones.length === 0) return null;
+    return patrones[(mes - 1) % patrones.length];
+  }
+  function getModalidadDia(fechaISO, patrones) {
+    if (esFinDeSemana(fechaISO)) return null;
+    const d = parseISODate(fechaISO);
+    const patron = getPatronDelMes(patrones, d.getMonth() + 1);
+    if (!patron) return null;
+    return patron.dias[DIAS_SEMANA_KEYS[d.getDay() - 1]] || null;
+  }
+
+  /* =========================================================
+     NUCLEO: HORAS REALES Y DESFASE DE UN REGISTRO DIARIO
+     =========================================================
+     CAMBIO CLAVE: las horas sindicales SIEMPRE cuentan como horas
+     efectivas hacia el objetivo, tanto si el dia es "sindical" (sin
+     marcaje real necesario, se computa el propio valor de
+     horasSindicales) como si es "mixto" (se suma el marcaje real
+     de trabajo + las horas sindicales de la franja, evitando doble
+     conteo porque el marcaje real ya excluye la franja sindical
+     en el flujo de uso normal).
+     ========================================================= */
+
+  function calcularHorasRealesDia(registro, infoTeorica) {
+    if (!registro) return 0;
+
+    const tiposSinMarcajeObligatorio = ["vacaciones", "permiso", "asuntos_propios", "otro"];
+    if (tiposSinMarcajeObligatorio.indexOf(registro.tipo) !== -1) {
+      return infoTeorica.horasTeoricas;
+    }
+
+    if (registro.tipo === "sindical") {
+      // Dia sindical completo: las horas sindicales SON las horas efectivas del dia.
+      return registro.horasSindicales || infoTeorica.horasTeoricas;
+    }
+
+    let horasTrabajoMarcaje = 0;
+    if (registro.entradaReal && registro.salidaReal) {
+      const minutos = horaAMinutos(registro.salidaReal) - horaAMinutos(registro.entradaReal);
+      if (minutos > 0) horasTrabajoMarcaje = Math.round((minutos / 60) * 100) / 100;
+    }
+
+    if (registro.tipo === "mixto") {
+      // Dia mixto: horas de trabajo marcadas + horas sindicales de la franja.
+      const totalMixto = Math.round((horasTrabajoMarcaje + (registro.horasSindicales || 0)) * 100) / 100;
+      return totalMixto;
+    }
+
+    // Tipo "trabajo" normal (sin franja sindical asociada).
+    return horasTrabajoMarcaje;
+  }
+
+  function calcularDesfaseDia(registro, infoTeorica) {
+    return Math.round((calcularHorasRealesDia(registro, infoTeorica) - infoTeorica.horasTeoricas) * 100) / 100;
+  }
+
+  /* =========================================================
+     NUCLEO: PLANIFICACION vs REAL -> DEFINITIVO / PROVISIONAL
+     =========================================================
+     Un dia se marca "definitivo" cuando existe planificacion
+     (entrada/salida previstas) y coincide EXACTAMENTE con el
+     marcaje real de ese dia. En cualquier otro caso (sin
+     planificacion, o planificacion que no coincide), el dia
+     queda "provisional" y prevalecen siempre las horas reales
+     para todos los calculos de desfase/balance.
+     ========================================================= */
+
+  function calcularEstadoPlanificacion(registro) {
+    if (!registro) return "sin_datos";
+    const tieneMarcajeReal = !!(registro.entradaReal && registro.salidaReal);
+    const tienePlanificacion = !!(registro.planEntrada && registro.planSalida);
+
+    if (!tienePlanificacion) return "provisional";
+    if (!tieneMarcajeReal) return "provisional";
+
+    const coincide = registro.planEntrada === registro.entradaReal && registro.planSalida === registro.salidaReal;
+    return coincide ? "definitivo" : "provisional";
+  }
+
+
+  /* =========================================================
+     BALANCE ANUAL COMPLETO (usa calcularHorasRealesDia ya corregido)
+     ========================================================= */
+
+  const NOMBRES_MESES_LARGO = ["Enero","Febrero","Marzo","Abril","Mayo","Junio",
+    "Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+
+  function registroPorFechaEnLista(registros, fechaISO) {
+    return registros.find(function (r) { return r.fecha === fechaISO; }) || null;
+  }
+
+  function calcularBalanceAnual(anio, config, festivos, registros) {
+    const meses = [];
+    let totalTeoricas = 0, totalReales = 0, totalSindicales = 0;
+
+    for (let mes = 1; mes <= 12; mes++) {
+      const diasEnMes = new Date(anio, mes, 0).getDate();
+      let horasTeoricasMes = 0, horasRealesMes = 0, horasSindicalesMes = 0;
+
+      for (let dia = 1; dia <= diasEnMes; dia++) {
+        const fechaISO = toISODate(anio, mes, dia);
+        const info = getHorasTeoricasDia(fechaISO, config, festivos);
+        if (!info.esLaborable) continue;
+
+        horasTeoricasMes += info.horasTeoricas;
+        const registro = registroPorFechaEnLista(registros, fechaISO);
+        if (registro) {
+          horasRealesMes += calcularHorasRealesDia(registro, info);
+          horasSindicalesMes += (registro.horasSindicales || 0);
+        }
+      }
+
+      horasTeoricasMes = Math.round(horasTeoricasMes * 100) / 100;
+      horasRealesMes = Math.round(horasRealesMes * 100) / 100;
+      horasSindicalesMes = Math.round(horasSindicalesMes * 100) / 100;
+      const desfaseMes = Math.round((horasRealesMes - horasTeoricasMes) * 100) / 100;
+      const porcentajeMes = horasTeoricasMes > 0 ? Math.round((horasRealesMes / horasTeoricasMes) * 100) : 0;
+
+      meses.push({
+        mes: mes, nombreMes: NOMBRES_MESES_LARGO[mes - 1],
+        horasTeoricas: horasTeoricasMes, horasReales: horasRealesMes,
+        desfase: desfaseMes, horasSindicales: horasSindicalesMes, porcentaje: porcentajeMes
+      });
+
+      totalTeoricas += horasTeoricasMes;
+      totalReales += horasRealesMes;
+      totalSindicales += horasSindicalesMes;
+    }
+
+    totalTeoricas = Math.round(totalTeoricas * 100) / 100;
+    totalReales = Math.round(totalReales * 100) / 100;
+    totalSindicales = Math.round(totalSindicales * 100) / 100;
+    const totalDesfase = Math.round((totalReales - totalTeoricas) * 100) / 100;
+    const porcentajeAnual = totalTeoricas > 0 ? Math.round((totalReales / totalTeoricas) * 100) : 0;
+
+    return {
+      meses: meses, totalTeoricas: totalTeoricas, totalReales: totalReales,
+      totalDesfase: totalDesfase, totalSindicales: totalSindicales, porcentajeAnual: porcentajeAnual
+    };
+  }
+
+  /* =========================================================
+     COLORES PERSONALIZABLES
+     ========================================================= */
+
+  const ITEMS_COLOREABLES = [
+    { key: "presencial", label: "Presencial (rotaci\u00f3n)", varName: "--color-item-presencial", def: "#16a34a" },
+    { key: "teletrabajo", label: "Teletrabajo (rotaci\u00f3n)", varName: "--color-item-teletrabajo", def: "#2563eb" },
+    { key: "sindical", label: "D\u00eda sindical", varName: "--color-item-sindical", def: "#0891b2" },
+    { key: "mixto", label: "D\u00eda mixto", varName: "--color-item-mixto", def: "#a21caf" },
+    { key: "vacaciones", label: "Vacaciones", varName: "--color-item-vacaciones", def: "#f59e0b" },
+    { key: "permiso", label: "Permiso", varName: "--color-item-permiso", def: "#ec4899" },
+    { key: "asuntos_propios", label: "Asuntos propios", varName: "--color-item-asuntos", def: "#7c3aed" },
+    { key: "otro", label: "Otro", varName: "--color-item-otro", def: "#64748b" },
+    { key: "festivo", label: "Festivo (fondo)", varName: "--color-item-festivo", def: "#fef2f2" },
+    { key: "finde", label: "Fin de semana (fondo)", varName: "--color-item-finde", def: "#f5f3ff" },
+    { key: "reducido", label: "Horario reducido (fondo)", varName: "--color-item-reducido", def: "#fffbeb" }
+  ];
+
+  function coloresPorDefecto() {
+    const obj = {};
+    ITEMS_COLOREABLES.forEach(function (item) { obj[item.key] = item.def; });
+    return obj;
+  }
+
+  function aplicarColoresAlDOM(colores) {
+    const root = document.documentElement;
+    ITEMS_COLOREABLES.forEach(function (item) {
+      const valor = (colores && colores[item.key]) ? colores[item.key] : item.def;
+      root.style.setProperty(item.varName, valor);
+    });
+  }
+
+
+  /* =========================================================
+     ESTADO DE LA APLICACION
+     ========================================================= */
+
+  let anioActivo = new Date().getFullYear();
+  let mesActivo = new Date().getMonth() + 1;
+  let festivosCache = [];
+  let configCache = null;
+  let registrosCache = [];
+  let patronesCache = [];
+  let coloresCache = coloresPorDefecto();
+  let fechaDiaEnEdicion = null;
+  let tipoDiaSeleccionado = "trabajo";
+  let vistaActiva = "calendario";
+
+  /* =========================================================
+     REFERENCIAS DOM
+     ========================================================= */
+
+  const statusBar = document.getElementById("status-bar");
+  const inputYear = document.getElementById("input-year");
+  const btnOpenConfig = document.getElementById("btn-open-config");
+  const btnCloseConfig = document.getElementById("btn-close-config");
+  const modalConfig = document.getElementById("modal-config");
+  const btnGuardarConfig = document.getElementById("btn-guardar-config");
+
+  const tabCalendario = document.getElementById("tab-calendario");
+  const tabBalance = document.getElementById("tab-balance");
+  const vistaCalendario = document.getElementById("vista-calendario");
+  const vistaBalance = document.getElementById("vista-balance");
+
+  const chkHijosMenores = document.getElementById("chk-hijos-menores");
+  const cfgHorasTeoricas = document.getElementById("cfg-horas-teoricas");
+  const cfgEntradaMin = document.getElementById("cfg-entrada-min");
+  const cfgSalidaMax = document.getElementById("cfg-salida-max");
+  const cfgHorasMinimas = document.getElementById("cfg-horas-minimas");
+  const cfgHorasReducidas = document.getElementById("cfg-horas-reducidas");
+
+  const txtSemanaSI = document.getElementById("txt-semana-si");
+  const txtPeriodoEstival = document.getElementById("txt-periodo-estival");
+
+  const chkTieneSindicales = document.getElementById("chk-tiene-sindicales");
+  const bloqueSindicalesMeses = document.getElementById("bloque-sindicales-meses");
+  const gridSindicalesMeses = document.getElementById("grid-sindicales-meses");
+
+  const badgeAnioFestivos = document.getElementById("badge-anio-festivos");
+  const inputFestivoFecha = document.getElementById("input-festivo-fecha");
+  const inputFestivoNombre = document.getElementById("input-festivo-nombre");
+  const btnAddFestivo = document.getElementById("btn-add-festivo");
+  const festivoFormError = document.getElementById("festivo-form-error");
+  const tbodyFestivos = document.getElementById("tbody-festivos");
+  const festivosEmpty = document.getElementById("festivos-empty");
+
+  const listaPatrones = document.getElementById("lista-patrones");
+  const btnAddPatron = document.getElementById("btn-add-patron");
+  const rotacionMesesGrid = document.getElementById("rotacion-meses-grid");
+
+  const coloresGrid = document.getElementById("colores-grid");
+  const btnRestaurarColores = document.getElementById("btn-restaurar-colores");
+
+  const btnMesAnterior = document.getElementById("btn-mes-anterior");
+  const btnMesSiguiente = document.getElementById("btn-mes-siguiente");
+  const calMesActual = document.getElementById("cal-mes-actual");
+  const calLeyenda = document.getElementById("cal-leyenda");
+  const calendarioDowRow = document.getElementById("calendario-dow-row");
+  const calendarioGrid = document.getElementById("calendario-grid");
+  const resumenMesContenido = document.getElementById("resumen-mes-contenido");
+
+  const modalDia = document.getElementById("modal-dia");
+  const btnCloseDia = document.getElementById("btn-close-dia");
+  const modalDiaTitulo = document.getElementById("modal-dia-titulo");
+  const resumenDiaInfo = document.getElementById("resumen-dia-info");
+  const diaFormError = document.getElementById("dia-form-error");
+  const tipoDiaGrid = document.getElementById("tipo-dia-grid");
+  const otroDescripcionField = document.getElementById("otro-descripcion-field");
+  const inputOtroDescripcion = document.getElementById("input-otro-descripcion");
+  const bloquePlanificacion = document.getElementById("bloque-planificacion");
+  const inputPlanEntrada = document.getElementById("input-plan-entrada");
+  const inputPlanSalida = document.getElementById("input-plan-salida");
+  const estadoPlanificacionBadge = document.getElementById("estado-planificacion-badge");
+  const bloqueMarcajeReal = document.getElementById("bloque-marcaje-real");
+  const inputRealEntrada = document.getElementById("input-real-entrada");
+  const inputRealSalida = document.getElementById("input-real-salida");
+  const bloqueSindicalDia = document.getElementById("bloque-sindical-dia");
+  const inputDiaSindicalInicio = document.getElementById("input-dia-sindical-inicio");
+  const inputDiaSindicalFin = document.getElementById("input-dia-sindical-fin");
+  const infoSindicalDia = document.getElementById("info-sindical-dia");
+  const inputDiaNotas = document.getElementById("input-dia-notas");
+  const btnGuardarDia = document.getElementById("btn-guardar-dia");
+  const btnEliminarDia = document.getElementById("btn-eliminar-dia");
+
+  const balanceAnioLabel = document.getElementById("balance-anio-label");
+  const kpiGrid = document.getElementById("kpi-grid");
+  const tbodyBalanceMensual = document.getElementById("tbody-balance-mensual");
+  const canvasDesfaseMensual = document.getElementById("canvas-desfase-mensual");
+  const progresoAnualFill = document.getElementById("progreso-anual-fill");
+  const progresoAnualTexto = document.getElementById("progreso-anual-texto");
+
+  const NOMBRES_MESES = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
+  const NOMBRES_DOW = ["Lun","Mar","Mi\u00e9","Jue","Vie","S\u00e1b","Dom"];
+
+  /* =========================================================
+     UI GENERAL Y NAVEGACION DE PESTA\u00d1AS
+     ========================================================= */
+
+  function setStatus(message, type) {
+    statusBar.textContent = message;
+    statusBar.className = type || "";
+  }
+
+  function openConfigModal() { modalConfig.classList.add("open"); }
+  function closeConfigModal() { modalConfig.classList.remove("open"); }
+
+  btnOpenConfig.addEventListener("click", openConfigModal);
+  btnCloseConfig.addEventListener("click", closeConfigModal);
+  modalConfig.addEventListener("click", function (evt) { if (evt.target === modalConfig) closeConfigModal(); });
+
+  document.querySelectorAll(".config-section-header").forEach(function (header) {
+    header.addEventListener("click", function () {
+      header.closest(".config-section").classList.toggle("collapsed");
+    });
+  });
+
+  function mostrarVista(vista) {
+    vistaActiva = vista;
+    tabCalendario.classList.toggle("active", vista === "calendario");
+    tabBalance.classList.toggle("active", vista === "balance");
+    vistaCalendario.classList.toggle("hidden", vista !== "calendario");
+    vistaBalance.classList.toggle("hidden", vista !== "balance");
+    if (vista === "balance") renderBalanceAnual();
+  }
+
+  tabCalendario.addEventListener("click", function () { mostrarVista("calendario"); });
+  tabBalance.addEventListener("click", function () { mostrarVista("balance"); });
+
+  /* =========================================================
+     12 CAMPOS DE HORAS SINDICALES
+     ========================================================= */
+
+  function construirCamposSindicalesMeses() {
+    gridSindicalesMeses.innerHTML = "";
+    for (let m = 1; m <= 12; m++) {
+      const field = document.createElement("div");
+      field.className = "form-field";
+      field.innerHTML =
+        '<label for="sind-mes-' + m + '">' + NOMBRES_MESES[m - 1] + '</label>' +
+        '<input type="number" id="sind-mes-' + m + '" data-mes="' + m + '" min="0" step="1" value="0">';
+      gridSindicalesMeses.appendChild(field);
+    }
+  }
+  construirCamposSindicalesMeses();
+
+  chkTieneSindicales.addEventListener("change", function () {
+    bloqueSindicalesMeses.style.display = chkTieneSindicales.checked ? "block" : "none";
+  });
+
+  /* =========================================================
+     PANEL DE COLORES PERSONALIZABLES
+     ========================================================= */
+
+  function construirGridColores() {
+    coloresGrid.innerHTML = "";
+    ITEMS_COLOREABLES.forEach(function (item) {
+      const row = document.createElement("div");
+      row.className = "color-item-row";
+      const valorActual = coloresCache[item.key] || item.def;
+      row.innerHTML =
+        '<input type="color" id="color-' + item.key + '" value="' + valorActual + '">' +
+        '<label for="color-' + item.key + '">' + item.label + '</label>';
+      coloresGrid.appendChild(row);
+
+      row.querySelector("input").addEventListener("input", function (evt) {
+        coloresCache[item.key] = evt.target.value;
+        aplicarColoresAlDOM(coloresCache);
+        renderLeyenda();
+        renderCalendario();
+      });
+    });
+  }
+  construirGridColores();
+
+  btnRestaurarColores.addEventListener("click", function () {
+    coloresCache = coloresPorDefecto();
+    construirGridColores();
+    aplicarColoresAlDOM(coloresCache);
+    renderLeyenda();
+    renderCalendario();
+  });
+
+  function renderLeyenda() {
+    calLeyenda.innerHTML =
+      '<span><span class="dot" style="background:var(--color-item-festivo);border:1px solid #fecaca;"></span>Festivo</span>' +
+      '<span><span class="dot" style="background:var(--color-item-finde);"></span>Fin de semana</span>' +
+      '<span><span class="dot" style="background:var(--color-item-reducido);"></span>Horario reducido</span>' +
+      '<span><span class="cal-mini-dot" style="background:var(--color-item-presencial);"></span>Presencial</span>' +
+      '<span><span class="cal-mini-dot" style="background:var(--color-item-teletrabajo);"></span>Teletrabajo</span>' +
+      '<span><span class="cal-mini-dot" style="background:var(--color-item-sindical);"></span>Sindical</span>' +
+      '<span><span class="cal-mini-dot" style="background:var(--color-item-mixto);"></span>Mixto</span>' +
+      '<span><span class="cal-mini-dot" style="background:var(--color-item-vacaciones);"></span>Vacaciones</span>' +
+      '<span><span class="cal-mini-dot" style="background:var(--color-item-permiso);"></span>Permiso</span>' +
+      '<span><span class="cal-mini-dot" style="background:var(--color-item-asuntos);"></span>Asuntos propios</span>' +
+      '<span><span class="cal-mini-dot" style="background:var(--color-item-otro);"></span>Otro</span>';
+  }
+
+  /* =========================================================
+     INFO DERIVADA: SAN ISIDRO Y PERIODO ESTIVAL
+     ========================================================= */
+
+  function actualizarInfoDerivada() {
+    const semana = getSemanaSanIsidro(anioActivo);
+    txtSemanaSI.textContent = formatoFechaLegible(semana.inicio) + " \u2192 " + formatoFechaLegible(semana.fin) + " (lunes a viernes)";
+    const estival = getPeriodoEstival(anioActivo, chkHijosMenores.checked);
+    txtPeriodoEstival.textContent = formatoFechaLegible(estival.inicio) + " \u2192 " + formatoFechaLegible(estival.fin);
+  }
+
+  chkHijosMenores.addEventListener("change", function () {
+    actualizarInfoDerivada();
+    renderCalendario();
+    if (vistaActiva === "balance") renderBalanceAnual();
+  });
+
+  /* =========================================================
+     GESTION DE PATRONES DE ROTACION
+     ========================================================= */
+
+  function renderPatronCard(patron, index) {
+    const card = document.createElement("div");
+    card.className = "patron-card";
+    const header = document.createElement("div");
+    header.className = "patron-card-header";
+
+    const inputNombre = document.createElement("input");
+    inputNombre.type = "text";
+    inputNombre.value = patron.nombre;
+    inputNombre.addEventListener("input", function () {
+      patronesCache[index].nombre = inputNombre.value;
+      renderRotacionMesesGrid();
+    });
+
+    const btnDel = document.createElement("button");
+    btnDel.className = "btn-danger btn-sm";
+    btnDel.textContent = "Eliminar";
+    btnDel.addEventListener("click", function () {
+      patronesCache.splice(index, 1);
+      renderPatrones();
+    });
+
+    header.appendChild(inputNombre);
+    header.appendChild(btnDel);
+    card.appendChild(header);
+
+    const toggleRow = document.createElement("div");
+    toggleRow.className = "dias-semana-toggle";
+    DIAS_SEMANA_KEYS.forEach(function (key) {
+      const btn = document.createElement("button");
+      const valorActual = patron.dias[key] || "presencial";
+      btn.type = "button";
+      btn.className = "dia-toggle-btn " + valorActual;
+      btn.textContent = DIAS_SEMANA_LABEL[key] + ": " + (valorActual === "presencial" ? "Presencial" : "Teletrab.");
+      btn.addEventListener("click", function () {
+        const nuevoValor = patronesCache[index].dias[key] === "presencial" ? "teletrabajo" : "presencial";
+        patronesCache[index].dias[key] = nuevoValor;
+        btn.className = "dia-toggle-btn " + nuevoValor;
+        btn.textContent = DIAS_SEMANA_LABEL[key] + ": " + (nuevoValor === "presencial" ? "Presencial" : "Teletrab.");
+        renderRotacionMesesGrid();
+      });
+      toggleRow.appendChild(btn);
+    });
+    card.appendChild(toggleRow);
+    return card;
+  }
+
+  function renderPatrones() {
+    listaPatrones.innerHTML = "";
+    if (patronesCache.length === 0) {
+      const vacio = document.createElement("p");
+      vacio.style.cssText = "font-size:0.82rem;color:var(--color-text-light);";
+      vacio.textContent = "No hay patrones definidos.";
+      listaPatrones.appendChild(vacio);
+    } else {
+      patronesCache.forEach(function (patron, index) { listaPatrones.appendChild(renderPatronCard(patron, index)); });
+    }
+    renderRotacionMesesGrid();
+  }
+
+  function renderRotacionMesesGrid() {
+    rotacionMesesGrid.innerHTML = "";
+    for (let mes = 1; mes <= 12; mes++) {
+      const patron = getPatronDelMes(patronesCache, mes);
+      const item = document.createElement("div");
+      item.className = "rotacion-mes-item";
+      item.innerHTML = "<span>" + NOMBRES_MESES_LARGO[mes - 1] + "</span><strong>" + (patron ? patron.nombre : "Sin patr\u00f3n") + "</strong>";
+      rotacionMesesGrid.appendChild(item);
+    }
+  }
+
+  btnAddPatron.addEventListener("click", function () {
+    patronesCache.push(patronPorDefecto("Patr\u00f3n " + (patronesCache.length + 1)));
+    renderPatrones();
+  });
+
+  /* =========================================================
+     PERSISTENCIA DE CONFIGURACION GENERAL
+     ========================================================= */
+
+  function leerFormularioConfig() {
+    const sindicalesPorMes = {};
+    for (let m = 1; m <= 12; m++) {
+      const el = document.getElementById("sind-mes-" + m);
+      sindicalesPorMes[m] = el ? (parseInt(el.value, 10) || 0) : 0;
+    }
+    return {
+      anio: anioActivo,
+      tieneHijosMenores: chkHijosMenores.checked,
+      horasTeoricas: parseFloat(cfgHorasTeoricas.value) || 7,
+      entradaMin: cfgEntradaMin.value || "07:30",
+      salidaMax: cfgSalidaMax.value || "18:00",
+      horasMinimasDia: parseFloat(cfgHorasMinimas.value) || 5,
+      horasReducidas: parseFloat(cfgHorasReducidas.value) || 6,
+      tieneSindicales: chkTieneSindicales.checked,
+      sindicalesPorMes: sindicalesPorMes,
+      patronesRotacion: JSON.parse(JSON.stringify(patronesCache)),
+      colores: JSON.parse(JSON.stringify(coloresCache))
+    };
+  }
+
+  function aplicarConfigAlFormulario(config) {
+    const cfg = config || {};
+    chkHijosMenores.checked = !!cfg.tieneHijosMenores;
+    cfgHorasTeoricas.value = cfg.horasTeoricas != null ? cfg.horasTeoricas : 7;
+    cfgEntradaMin.value = cfg.entradaMin || "07:30";
+    cfgSalidaMax.value = cfg.salidaMax || "18:00";
+    cfgHorasMinimas.value = cfg.horasMinimasDia != null ? cfg.horasMinimasDia : 5;
+    cfgHorasReducidas.value = cfg.horasReducidas != null ? cfg.horasReducidas : 6;
+    chkTieneSindicales.checked = !!cfg.tieneSindicales;
+    bloqueSindicalesMeses.style.display = chkTieneSindicales.checked ? "block" : "none";
+    const sindicalesPorMes = cfg.sindicalesPorMes || {};
+    for (let m = 1; m <= 12; m++) {
+      const el = document.getElementById("sind-mes-" + m);
+      if (el) el.value = sindicalesPorMes[m] != null ? sindicalesPorMes[m] : 0;
+    }
+    patronesCache = (cfg.patronesRotacion && cfg.patronesRotacion.length > 0)
+      ? JSON.parse(JSON.stringify(cfg.patronesRotacion)) : [];
+    renderPatrones();
+
+    coloresCache = Object.assign(coloresPorDefecto(), cfg.colores || {});
+    construirGridColores();
+    aplicarColoresAlDOM(coloresCache);
+    renderLeyenda();
+
+    actualizarInfoDerivada();
+  }
+
+  function leerConfigPorDefecto(anio) {
+    return {
+      anio: anio, tieneHijosMenores: false, horasTeoricas: 7,
+      entradaMin: "07:30", salidaMax: "18:00", horasMinimasDia: 5,
+      horasReducidas: 6, tieneSindicales: false, sindicalesPorMes: {},
+      patronesRotacion: [], colores: coloresPorDefecto()
+    };
+  }
+
+  function cargarConfigDelAnio(anio) {
+    return getRecord(STORE_CONFIG, anio).then(function (config) {
+      configCache = config || leerConfigPorDefecto(anio);
+      aplicarConfigAlFormulario(configCache);
+      return configCache;
+    });
+  }
+
+  function guardarConfigDelAnio() {
+    const config = leerFormularioConfig();
+    return putRecord(STORE_CONFIG, config).then(function () {
+      configCache = config;
+      setStatus("Configuraci\u00f3n del a\u00f1o " + anioActivo + " guardada correctamente.", "ok");
+      renderCalendario();
+      if (vistaActiva === "balance") renderBalanceAnual();
+    });
+  }
+
+  btnGuardarConfig.addEventListener("click", function () {
+    guardarConfigDelAnio().catch(function (err) {
+      console.error(err);
+      setStatus("Error al guardar la configuraci\u00f3n: " + err.message, "error");
+    });
+  });
+
+  /* =========================================================
+     GESTION DE FESTIVOS
+     ========================================================= */
+
+  function validarFestivoForm(fechaISO, nombre) {
+    if (!fechaISO) return "Debes indicar una fecha.";
+    const anioFecha = parseInt(fechaISO.split("-")[0], 10);
+    if (anioFecha !== anioActivo) return "La fecha debe pertenecer al a\u00f1o seleccionado (" + anioActivo + ").";
+    if (!nombre || !nombre.trim()) return "Debes indicar un nombre para el festivo.";
+    const duplicado = festivosCache.some(function (f) { return f.fecha === fechaISO; });
+    if (duplicado) return "Ya existe un festivo registrado en esa fecha.";
+    return null;
+  }
+
+  function mostrarErrorFestivo(msg) {
+    if (msg) { festivoFormError.textContent = msg; festivoFormError.style.display = "block"; }
+    else { festivoFormError.style.display = "none"; festivoFormError.textContent = ""; }
+  }
+
+  function renderTablaFestivos() {
+    const ordenados = festivosCache.slice().sort(function (a, b) { return a.fecha < b.fecha ? -1 : (a.fecha > b.fecha ? 1 : 0); });
+    tbodyFestivos.innerHTML = "";
+    if (ordenados.length === 0) {
+      festivosEmpty.style.display = "block";
+      badgeAnioFestivos.textContent = "0 festivos";
+      badgeAnioFestivos.className = "badge badge-warn";
+      return;
+    }
+    festivosEmpty.style.display = "none";
+    badgeAnioFestivos.textContent = ordenados.length + " festivo" + (ordenados.length === 1 ? "" : "s");
+    badgeAnioFestivos.className = "badge badge-ok";
+    ordenados.forEach(function (festivo) {
+      const tr = document.createElement("tr");
+      const tdFecha = document.createElement("td");
+      tdFecha.textContent = formatoFechaLegible(festivo.fecha) + " (" + nombreDiaSemana(festivo.fecha).slice(0,3) + ")";
+      const tdNombre = document.createElement("td");
+      tdNombre.textContent = festivo.nombre;
+      const tdAcciones = document.createElement("td");
+      const btnDel = document.createElement("button");
+      btnDel.className = "btn-danger btn-sm";
+      btnDel.textContent = "Eliminar";
+      btnDel.addEventListener("click", function () { eliminarFestivo(festivo.id); });
+      tdAcciones.appendChild(btnDel);
+      tr.appendChild(tdFecha); tr.appendChild(tdNombre); tr.appendChild(tdAcciones);
+      tbodyFestivos.appendChild(tr);
+    });
+  }
+
+  function cargarFestivosDelAnio(anio) {
+    return getAllByIndex(STORE_FESTIVOS, "por_anio", anio).then(function (lista) {
+      festivosCache = lista;
+      renderTablaFestivos();
+      return lista;
+    });
+  }
+
+  function anadirFestivo() {
+    const fechaISO = inputFestivoFecha.value;
+    const nombre = inputFestivoNombre.value;
+    const error = validarFestivoForm(fechaISO, nombre);
+    if (error) { mostrarErrorFestivo(error); return; }
+    mostrarErrorFestivo(null);
+    const registro = { anio: anioActivo, fecha: fechaISO, nombre: nombre.trim() };
+    putRecord(STORE_FESTIVOS, registro)
+      .then(function () {
+        inputFestivoFecha.value = ""; inputFestivoNombre.value = "";
+        return cargarFestivosDelAnio(anioActivo);
+      })
+      .then(function () {
+        setStatus("Festivo a\u00f1adido: " + registro.nombre + " (" + formatoFechaLegible(registro.fecha) + ").", "ok");
+        renderCalendario();
+        if (vistaActiva === "balance") renderBalanceAnual();
+      })
+      .catch(function (err) {
+        console.error(err);
+        mostrarErrorFestivo("Error al guardar el festivo: " + err.message);
+      });
+  }
+
+  function eliminarFestivo(id) {
+    deleteRecord(STORE_FESTIVOS, id)
+      .then(function () { return cargarFestivosDelAnio(anioActivo); })
+      .then(function () {
+        setStatus("Festivo eliminado correctamente.", "ok");
+        renderCalendario();
+        if (vistaActiva === "balance") renderBalanceAnual();
+      })
+      .catch(function (err) {
+        console.error(err);
+        setStatus("Error al eliminar el festivo: " + err.message, "error");
+      });
+  }
+
+  btnAddFestivo.addEventListener("click", anadirFestivo);
+  inputFestivoNombre.addEventListener("keydown", function (evt) { if (evt.key === "Enter") anadirFestivo(); });
+
+
+  /* =========================================================
+     RENDERIZADO DEL CALENDARIO MENSUAL
+     ========================================================= */
+
+  function registroPorFecha(fechaISO) {
+    return registrosCache.find(function (r) { return r.fecha === fechaISO; }) || null;
+  }
+
+  function colorVarPorRegistro(registro) {
+    if (!registro) return null;
+    const mapa = {
+      sindical: "--color-item-sindical", mixto: "--color-item-mixto",
+      vacaciones: "--color-item-vacaciones", permiso: "--color-item-permiso",
+      asuntos_propios: "--color-item-asuntos", otro: "--color-item-otro"
+    };
+    return mapa[registro.tipo] || null;
+  }
+
+  function renderCalendarioDow() {
+    calendarioDowRow.innerHTML = "";
+    NOMBRES_DOW.forEach(function (nombre) {
+      const div = document.createElement("div");
+      div.className = "cal-dow";
+      div.textContent = nombre;
+      calendarioDowRow.appendChild(div);
+    });
+  }
+
+  function renderCalendario() {
+    if (!configCache) return;
+    calMesActual.textContent = NOMBRES_MESES_LARGO[mesActivo - 1] + " " + anioActivo;
+    calendarioGrid.innerHTML = "";
+
+    const primerDiaMes = new Date(anioActivo, mesActivo - 1, 1);
+    const diasEnMes = new Date(anioActivo, mesActivo, 0).getDate();
+    let dowPrimerDia = primerDiaMes.getDay();
+    dowPrimerDia = dowPrimerDia === 0 ? 6 : dowPrimerDia - 1;
+
+    for (let i = 0; i < dowPrimerDia; i++) {
+      const vacio = document.createElement("div");
+      vacio.className = "cal-day cal-day-empty";
+      calendarioGrid.appendChild(vacio);
+    }
+
+    for (let dia = 1; dia <= diasEnMes; dia++) {
+      const fechaISO = toISODate(anioActivo, mesActivo, dia);
+      const info = getHorasTeoricasDia(fechaISO, configCache, festivosCache);
+      const registro = registroPorFecha(fechaISO);
+      const modalidad = getModalidadDia(fechaISO, patronesCache);
+
+      const celda = document.createElement("div");
+      celda.className = "cal-day";
+      if (info.esFestivo) celda.style.background = "var(--color-item-festivo)";
+      else if (info.esFinDeSemana) celda.style.background = "var(--color-item-finde)";
+      else if (info.tipoJornada === "reducida") celda.style.background = "var(--color-item-reducido)";
+
+      const num = document.createElement("div");
+      num.className = "cal-day-num";
+      num.textContent = dia;
+      celda.appendChild(num);
+
+      const tagsRow = document.createElement("div");
+      tagsRow.className = "cal-day-tags";
+
+      if (info.esLaborable && modalidad) {
+        const dot = document.createElement("span");
+        dot.className = "cal-mini-dot";
+        dot.style.background = modalidad === "presencial" ? "var(--color-item-presencial)" : "var(--color-item-teletrabajo)";
+        tagsRow.appendChild(dot);
+      }
+      const colorVarRegistro = colorVarPorRegistro(registro);
+      if (colorVarRegistro) {
+        const dot2 = document.createElement("span");
+        dot2.className = "cal-mini-dot";
+        dot2.style.background = "var(" + colorVarRegistro + ")";
+        tagsRow.appendChild(dot2);
+      }
+      celda.appendChild(tagsRow);
+
+      if (info.esLaborable && registro) {
+        const horasReales = calcularHorasRealesDia(registro, info);
+        const desfase = calcularDesfaseDia(registro, info);
+        const estadoPlan = calcularEstadoPlanificacion(registro);
+        if (horasReales > 0 || ["vacaciones","permiso","asuntos_propios","otro"].indexOf(registro.tipo) !== -1) {
+          const desfaseEl = document.createElement("div");
+          desfaseEl.className = "cal-day-desfase " + (desfase >= 0 ? "positivo" : "negativo");
+          desfaseEl.textContent = (desfase >= 0 ? "+" : "") + desfase + "h" + (estadoPlan === "definitivo" ? " \u2713" : "");
+          desfaseEl.title = estadoPlan === "definitivo" ? "Definitivo (coincide con planificaci\u00f3n)" : "Provisional";
+          celda.appendChild(desfaseEl);
+        }
+      }
+
+      celda.addEventListener("click", function () { abrirModalDia(fechaISO); });
+      calendarioGrid.appendChild(celda);
+    }
+
+    renderResumenMes();
+  }
+
+  btnMesAnterior.addEventListener("click", function () {
+    mesActivo--;
+    if (mesActivo < 1) { mesActivo = 12; anioActivo--; inputYear.value = anioActivo; cambiarAnioActivo(anioActivo, true); return; }
+    renderCalendario();
+  });
+
+  btnMesSiguiente.addEventListener("click", function () {
+    mesActivo++;
+    if (mesActivo > 12) { mesActivo = 1; anioActivo++; inputYear.value = anioActivo; cambiarAnioActivo(anioActivo, true); return; }
+    renderCalendario();
+  });
+
+  /* =========================================================
+     RESUMEN DEL MES
+     ========================================================= */
+
+  function renderResumenMes() {
+    const diasEnMes = new Date(anioActivo, mesActivo, 0).getDate();
+    let horasTeoricasMes = 0, horasRealesMes = 0, horasSindicalesMes = 0;
+
+    for (let dia = 1; dia <= diasEnMes; dia++) {
+      const fechaISO = toISODate(anioActivo, mesActivo, dia);
+      const info = getHorasTeoricasDia(fechaISO, configCache, festivosCache);
+      if (!info.esLaborable) continue;
+      horasTeoricasMes += info.horasTeoricas;
+      const registro = registroPorFecha(fechaISO);
+      if (registro) {
+        horasRealesMes += calcularHorasRealesDia(registro, info);
+        horasSindicalesMes += (registro.horasSindicales || 0);
+      }
+    }
+    const desfaseMes = Math.round((horasRealesMes - horasTeoricasMes) * 100) / 100;
+    const bolsaSindicalMes = (configCache.tieneSindicales && configCache.sindicalesPorMes)
+      ? (configCache.sindicalesPorMes[mesActivo] != null ? configCache.sindicalesPorMes[mesActivo] : 0) : null;
+    const patron = getPatronDelMes(patronesCache, mesActivo);
+    const porcentaje = horasTeoricasMes > 0 ? Math.min(100, Math.round((horasRealesMes / horasTeoricasMes) * 100)) : 0;
+
+    resumenMesContenido.innerHTML =
+      '<div class="resumen-dia-info">' +
+        '<div class="fila"><span>Horas te\u00f3ricas del mes</span><strong>' + horasTeoricasMes + ' h</strong></div>' +
+        '<div class="fila"><span>Horas reales (incluye sindicales)</span><strong>' + Math.round(horasRealesMes*100)/100 + ' h</strong></div>' +
+        '<div class="fila"><span>Desfase acumulado</span><strong style="color:' + (desfaseMes >= 0 ? "#16a34a" : "#dc2626") + '">' +
+          (desfaseMes >= 0 ? "+" : "") + desfaseMes + ' h</strong></div>' +
+        (bolsaSindicalMes != null ? '<div class="fila"><span>Horas sindicales usadas</span><strong>' + horasSindicalesMes + ' h de ' + bolsaSindicalMes + ' h</strong></div>' : '') +
+        '<div class="fila"><span>Patr\u00f3n de rotaci\u00f3n</span><strong>' + (patron ? patron.nombre : "-") + '</strong></div>' +
+      '</div>' +
+      '<div style="background:#eef1f6; border-radius:8px; height:14px; overflow:hidden; margin-top:10px;">' +
+        '<div style="background:' + (porcentaje >= 100 ? "#16a34a" : "#2563eb") + '; height:100%; width:' + porcentaje + '%;"></div>' +
+      '</div>' +
+      '<p style="font-size:0.78rem; color:var(--color-text-light); margin-top:6px;">' + porcentaje + '% del objetivo te\u00f3rico mensual cumplido</p>';
+  }
+
+  /* =========================================================
+     RENDERIZADO DEL BALANCE ANUAL
+     ========================================================= */
+
+  function renderKpis(balance) {
+    balanceAnioLabel.textContent = "\u2014 " + anioActivo;
+    const desfaseClase = balance.totalDesfase >= 0 ? "positivo" : "negativo";
+    kpiGrid.innerHTML =
+      '<div class="kpi-card"><div class="kpi-label">Horas te\u00f3ricas</div><div class="kpi-value">' + balance.totalTeoricas + ' h</div></div>' +
+      '<div class="kpi-card"><div class="kpi-label">Horas reales (con sindicales)</div><div class="kpi-value">' + balance.totalReales + ' h</div></div>' +
+      '<div class="kpi-card"><div class="kpi-label">Desfase anual</div><div class="kpi-value ' + desfaseClase + '">' +
+        (balance.totalDesfase >= 0 ? "+" : "") + balance.totalDesfase + ' h</div></div>' +
+      '<div class="kpi-card"><div class="kpi-label">% cumplido</div><div class="kpi-value">' + balance.porcentajeAnual + '%</div></div>' +
+      '<div class="kpi-card"><div class="kpi-label">Horas sindicales usadas</div><div class="kpi-value">' + balance.totalSindicales + ' h</div></div>';
+  }
+
+  function renderTablaBalanceMensual(balance) {
+    tbodyBalanceMensual.innerHTML = "";
+    balance.meses.forEach(function (m) {
+      const tr = document.createElement("tr");
+      const desfaseClase = m.desfase >= 0 ? "positivo" : "negativo";
+      tr.innerHTML =
+        "<td>" + m.nombreMes + "</td>" + "<td>" + m.horasTeoricas + " h</td>" + "<td>" + m.horasReales + " h</td>" +
+        '<td class="' + desfaseClase + '">' + (m.desfase >= 0 ? "+" : "") + m.desfase + " h</td>" +
+        "<td>" + m.horasSindicales + " h</td>" + "<td>" + m.porcentaje + "%</td>";
+      tbodyBalanceMensual.appendChild(tr);
+    });
+    const trTotal = document.createElement("tr");
+    trTotal.className = "fila-total";
+    const desfaseTotalClase = balance.totalDesfase >= 0 ? "positivo" : "negativo";
+    trTotal.innerHTML =
+      "<td>Total anual</td>" + "<td>" + balance.totalTeoricas + " h</td>" + "<td>" + balance.totalReales + " h</td>" +
+      '<td class="' + desfaseTotalClase + '">' + (balance.totalDesfase >= 0 ? "+" : "") + balance.totalDesfase + " h</td>" +
+      "<td>" + balance.totalSindicales + " h</td>" + "<td>" + balance.porcentajeAnual + "%</td>";
+    tbodyBalanceMensual.appendChild(trTotal);
+  }
+
+  function dibujarGraficoDesfaseMensual(balance) {
+    const canvas = canvasDesfaseMensual;
+    const dpr = window.devicePixelRatio || 1;
+    const rect = canvas.getBoundingClientRect();
+    const width = Math.max(rect.width, 300);
+    const height = 220;
+
+    canvas.width = width * dpr;
+    canvas.height = height * dpr;
+    const ctx = canvas.getContext("2d");
+    ctx.scale(dpr, dpr);
+    ctx.clearRect(0, 0, width, height);
+
+    const desfases = balance.meses.map(function (m) { return m.desfase; });
+    const maxAbs = Math.max(1, Math.max.apply(null, desfases.map(Math.abs)));
+    const padding = { top: 10, bottom: 30, left: 40, right: 10 };
+    const chartWidth = width - padding.left - padding.right;
+    const chartHeight = height - padding.top - padding.bottom;
+    const zeroY = padding.top + chartHeight / 2;
+    const barWidth = chartWidth / 12 * 0.6;
+    const slotWidth = chartWidth / 12;
+
+    ctx.strokeStyle = "#dde3ec";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(padding.left, zeroY);
+    ctx.lineTo(width - padding.right, zeroY);
+    ctx.stroke();
+
+    balance.meses.forEach(function (m, idx) {
+      const x = padding.left + idx * slotWidth + (slotWidth - barWidth) / 2;
+      const barHeight = (Math.abs(m.desfase) / maxAbs) * (chartHeight / 2);
+      const y = m.desfase >= 0 ? zeroY - barHeight : zeroY;
+      ctx.fillStyle = m.desfase >= 0 ? "#16a34a" : "#dc2626";
+      ctx.fillRect(x, y, barWidth, Math.max(barHeight, 1));
+      ctx.fillStyle = "#6b7280";
+      ctx.font = "10px sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText(NOMBRES_MESES[idx], x + barWidth / 2, height - padding.bottom + 14);
+    });
+
+    ctx.fillStyle = "#6b7280";
+    ctx.font = "10px sans-serif";
+    ctx.textAlign = "right";
+    ctx.fillText("+" + Math.round(maxAbs) + "h", padding.left - 4, padding.top + 8);
+    ctx.fillText("0h", padding.left - 4, zeroY + 3);
+    ctx.fillText("-" + Math.round(maxAbs) + "h", padding.left - 4, height - padding.bottom - 4);
+  }
+
+  function renderProgresoAnual(balance) {
+    const porcentaje = Math.min(100, balance.porcentajeAnual);
+    progresoAnualFill.style.width = porcentaje + "%";
+    progresoAnualFill.style.background = balance.porcentajeAnual >= 100 ? "#16a34a" : "#2563eb";
+    progresoAnualTexto.textContent =
+      balance.porcentajeAnual + "% del objetivo te\u00f3rico anual cumplido (" +
+      balance.totalReales + " h de " + balance.totalTeoricas + " h te\u00f3ricas, incluyendo horas sindicales)";
+  }
+
+  function renderBalanceAnual() {
+    if (!configCache) return;
+    const balance = calcularBalanceAnual(anioActivo, configCache, festivosCache, registrosCache);
+    renderKpis(balance);
+    renderTablaBalanceMensual(balance);
+    dibujarGraficoDesfaseMensual(balance);
+    renderProgresoAnual(balance);
+  }
+
+  window.addEventListener("resize", function () {
+    if (vistaActiva === "balance" && configCache) {
+      dibujarGraficoDesfaseMensual(calcularBalanceAnual(anioActivo, configCache, festivosCache, registrosCache));
+    }
+  });
+
+
+  /* =========================================================
+     MODAL DE REGISTRO DIARIO
+     ========================================================= */
+
+  function mostrarErrorDia(msg) {
+    if (msg) { diaFormError.textContent = msg; diaFormError.style.display = "block"; }
+    else { diaFormError.style.display = "none"; diaFormError.textContent = ""; }
+  }
+
+  function seleccionarTipoDia(tipo) {
+    tipoDiaSeleccionado = tipo;
+    document.querySelectorAll(".tipo-dia-btn").forEach(function (btn) { btn.classList.toggle("selected", btn.dataset.tipo === tipo); });
+    otroDescripcionField.style.display = tipo === "otro" ? "block" : "none";
+    const tiposSinMarcaje = ["vacaciones", "permiso", "asuntos_propios", "otro"];
+    const sinMarcaje = tiposSinMarcaje.indexOf(tipo) !== -1;
+    bloqueMarcajeReal.style.display = sinMarcaje ? "none" : "block";
+    bloquePlanificacion.style.display = sinMarcaje ? "none" : "block";
+    const permiteSindical = configCache && configCache.tieneSindicales &&
+      (tipo === "trabajo" || tipo === "sindical" || tipo === "mixto");
+    bloqueSindicalDia.style.display = permiteSindical ? "block" : "none";
+    mostrarErrorDia(null);
+    actualizarBadgePlanificacion();
+  }
+
+  tipoDiaGrid.addEventListener("click", function (evt) {
+    const btn = evt.target.closest(".tipo-dia-btn");
+    if (btn) seleccionarTipoDia(btn.dataset.tipo);
+  });
+
+  function actualizarBadgePlanificacion() {
+    const planEntrada = inputPlanEntrada.value;
+    const planSalida = inputPlanSalida.value;
+    const realEntrada = inputRealEntrada.value;
+    const realSalida = inputRealSalida.value;
+
+    if (!planEntrada || !planSalida) {
+      estadoPlanificacionBadge.innerHTML = '<span class="tag tag-provisional">Sin planificaci\u00f3n \u2192 Provisional</span>';
+      return;
+    }
+    if (!realEntrada || !realSalida) {
+      estadoPlanificacionBadge.innerHTML = '<span class="tag tag-provisional">Pendiente de marcaje real \u2192 Provisional</span>';
+      return;
+    }
+    const coincide = planEntrada === realEntrada && planSalida === realSalida;
+    estadoPlanificacionBadge.innerHTML = coincide
+      ? '<span class="tag tag-definitivo">Coincide con lo real \u2192 Definitivo</span>'
+      : '<span class="tag tag-provisional">No coincide con lo real \u2192 Provisional (prevalecen horas reales)</span>';
+  }
+
+  [inputPlanEntrada, inputPlanSalida, inputRealEntrada, inputRealSalida].forEach(function (el) {
+    el.addEventListener("change", actualizarBadgePlanificacion);
+    el.addEventListener("input", actualizarBadgePlanificacion);
+  });
+
+  function abrirModalDia(fechaISO) {
+    fechaDiaEnEdicion = fechaISO;
+    mostrarErrorDia(null);
+
+    const info = getHorasTeoricasDia(fechaISO, configCache, festivosCache);
+    const modalidad = getModalidadDia(fechaISO, patronesCache);
+    const modalidadTexto = modalidad === "presencial" ? "Presencial" : (modalidad === "teletrabajo" ? "Teletrabajo" : "Sin patr\u00f3n");
+
+    let motivoTexto = "";
+    if (info.motivoReducida === "san_isidro") motivoTexto = "Semana de San Isidro";
+    if (info.motivoReducida === "estival") motivoTexto = "Periodo estival";
+
+    modalDiaTitulo.textContent = formatoFechaLegible(fechaISO) + " (" + nombreDiaSemana(fechaISO) + ")";
+    resumenDiaInfo.innerHTML =
+      '<div class="fila"><span>Tipo de jornada</span><strong>' +
+        (info.esFestivo ? "Festivo (" + info.nombreFestivo + ")" : (info.esFinDeSemana ? "Fin de semana" : (info.tipoJornada === "reducida" ? "Reducida" : "Normal"))) +
+      '</strong></div>' +
+      '<div class="fila"><span>Horas te\u00f3ricas</span><strong>' + info.horasTeoricas + ' h</strong></div>' +
+      (motivoTexto ? '<div class="fila"><span>Motivo</span><strong>' + motivoTexto + '</strong></div>' : '') +
+      '<div class="fila"><span>Modalidad</span><strong>' + modalidadTexto + '</strong></div>';
+
+    const registro = registroPorFecha(fechaISO);
+    if (registro) {
+      seleccionarTipoDia(registro.tipo || "trabajo");
+      inputOtroDescripcion.value = registro.otroDescripcion || "";
+      inputPlanEntrada.value = registro.planEntrada || "";
+      inputPlanSalida.value = registro.planSalida || "";
+      inputRealEntrada.value = registro.entradaReal || "";
+      inputRealSalida.value = registro.salidaReal || "";
+      inputDiaSindicalInicio.value = registro.sindicalInicio || "";
+      inputDiaSindicalFin.value = registro.sindicalFin || "";
+      inputDiaNotas.value = registro.notas || "";
+      btnEliminarDia.style.display = "inline-block";
+    } else {
+      seleccionarTipoDia(info.esLaborable ? "trabajo" : "otro");
+      inputOtroDescripcion.value = ""; inputPlanEntrada.value = ""; inputPlanSalida.value = "";
+      inputRealEntrada.value = ""; inputRealSalida.value = "";
+      inputDiaSindicalInicio.value = ""; inputDiaSindicalFin.value = ""; inputDiaNotas.value = "";
+      btnEliminarDia.style.display = "none";
+    }
+
+    actualizarInfoSindicalDia();
+    actualizarBadgePlanificacion();
+    modalDia.classList.add("open");
+  }
+
+  function cerrarModalDia() {
+    modalDia.classList.remove("open");
+    fechaDiaEnEdicion = null;
+  }
+
+  btnCloseDia.addEventListener("click", cerrarModalDia);
+  modalDia.addEventListener("click", function (evt) { if (evt.target === modalDia) cerrarModalDia(); });
+
+  function actualizarInfoSindicalDia() {
+    if (!fechaDiaEnEdicion || !configCache || !configCache.tieneSindicales) { infoSindicalDia.style.display = "none"; return; }
+    const horaIni = inputDiaSindicalInicio.value;
+    const horaFin = inputDiaSindicalFin.value;
+    if (!horaIni || !horaFin) { infoSindicalDia.style.display = "none"; return; }
+
+    const horas = calcularHorasSindicalesFranja(horaIni, horaFin);
+    const mes = parseISODate(fechaDiaEnEdicion).getMonth() + 1;
+    const bolsaMes = (configCache.sindicalesPorMes && configCache.sindicalesPorMes[mes] != null) ? configCache.sindicalesPorMes[mes] : 0;
+    const usadasSinEsteDia = calcularHorasSindicalesUsadasMes(registrosCache, anioActivo, mes, fechaDiaEnEdicion);
+    const disponibles = Math.round((bolsaMes - usadasSinEsteDia) * 100) / 100;
+
+    infoSindicalDia.style.display = "block";
+    infoSindicalDia.textContent = horas + " h solicitadas \u00b7 " + disponibles + " h disponibles de " + bolsaMes + " h este mes (cuentan como horas efectivas)";
+    infoSindicalDia.style.color = horas > disponibles ? "#b91c1c" : "#1e40af";
+  }
+
+  inputDiaSindicalInicio.addEventListener("change", actualizarInfoSindicalDia);
+  inputDiaSindicalFin.addEventListener("change", actualizarInfoSindicalDia);
+
+  function guardarDia() {
+    if (!fechaDiaEnEdicion) return;
+    mostrarErrorDia(null);
+
+    const info = getHorasTeoricasDia(fechaDiaEnEdicion, configCache, festivosCache);
+    const tiposSinMarcaje = ["vacaciones", "permiso", "asuntos_propios", "otro"];
+
+    const registro = {
+      fecha: fechaDiaEnEdicion, anio: anioActivo, tipo: tipoDiaSeleccionado,
+      otroDescripcion: tipoDiaSeleccionado === "otro" ? inputOtroDescripcion.value.trim() : "",
+      planEntrada: "", planSalida: "",
+      entradaReal: "", salidaReal: "", horasSindicales: 0,
+      sindicalInicio: "", sindicalFin: "", notas: inputDiaNotas.value.trim()
+    };
+
+    if (tiposSinMarcaje.indexOf(tipoDiaSeleccionado) === -1) {
+      registro.planEntrada = inputPlanEntrada.value || "";
+      registro.planSalida = inputPlanSalida.value || "";
+      registro.entradaReal = inputRealEntrada.value || "";
+      registro.salidaReal = inputRealSalida.value || "";
+
+      if (registro.entradaReal && registro.salidaReal) {
+        const minutos = horaAMinutos(registro.salidaReal) - horaAMinutos(registro.entradaReal);
+        if (minutos <= 0) { mostrarErrorDia("La hora de salida debe ser posterior a la hora de entrada."); return; }
+        const horasReales = Math.round((minutos / 60) * 100) / 100;
+        if (info.esLaborable && horasReales < (configCache.horasMinimasDia || 5) && tipoDiaSeleccionado !== "sindical") {
+          mostrarErrorDia("Las horas registradas (" + horasReales + " h) no alcanzan el m\u00ednimo diario configurado (" + (configCache.horasMinimasDia || 5) + " h).");
+          return;
+        }
+      }
+      if (registro.planEntrada && registro.planSalida) {
+        const minutosPlan = horaAMinutos(registro.planSalida) - horaAMinutos(registro.planEntrada);
+        if (minutosPlan <= 0) { mostrarErrorDia("La salida planificada debe ser posterior a la entrada planificada."); return; }
+      }
+    }
+
+    const permiteSindical = configCache && configCache.tieneSindicales &&
+      (tipoDiaSeleccionado === "trabajo" || tipoDiaSeleccionado === "sindical" || tipoDiaSeleccionado === "mixto");
+
+    if (permiteSindical && inputDiaSindicalInicio.value && inputDiaSindicalFin.value) {
+      const horas = calcularHorasSindicalesFranja(inputDiaSindicalInicio.value, inputDiaSindicalFin.value);
+      if (horas <= 0) { mostrarErrorDia("La hora de fin sindical debe ser posterior a la hora de inicio sindical."); return; }
+      const mes = parseISODate(fechaDiaEnEdicion).getMonth() + 1;
+      const bolsaMes = (configCache.sindicalesPorMes && configCache.sindicalesPorMes[mes] != null) ? configCache.sindicalesPorMes[mes] : 0;
+      const usadasSinEsteDia = calcularHorasSindicalesUsadasMes(registrosCache, anioActivo, mes, fechaDiaEnEdicion);
+      const disponibles = Math.round((bolsaMes - usadasSinEsteDia) * 100) / 100;
+
+      if (horas > disponibles) {
+        mostrarErrorDia("No se puede guardar: la franja sindical (" + horas + " h) supera la bolsa disponible este mes (" + disponibles + " h).");
+        return;
+      }
+
+      registro.horasSindicales = horas;
+      registro.sindicalInicio = inputDiaSindicalInicio.value;
+      registro.sindicalFin = inputDiaSindicalFin.value;
+      const clasificacion = clasificarDiaPorSindical(horas, info.horasTeoricas);
+      registro.tipo = clasificacion === "sindical" ? "sindical" : (clasificacion === "mixto" ? "mixto" : tipoDiaSeleccionado);
+    }
+
+    putRecord(STORE_REGISTROS, registro)
+      .then(function () { return cargarRegistrosDelAnio(anioActivo); })
+      .then(function () {
+        const estado = calcularEstadoPlanificacion(registro);
+        setStatus("D\u00eda " + formatoFechaLegible(fechaDiaEnEdicion) + " guardado (" + estado + ").", "ok");
+        cerrarModalDia();
+        renderCalendario();
+        if (vistaActiva === "balance") renderBalanceAnual();
+      })
+      .catch(function (err) {
+        console.error(err);
+        mostrarErrorDia("Error al guardar: " + err.message);
+      });
+  }
+
+  btnGuardarDia.addEventListener("click", guardarDia);
+
+  btnEliminarDia.addEventListener("click", function () {
+    if (!fechaDiaEnEdicion) return;
+    deleteRecord(STORE_REGISTROS, fechaDiaEnEdicion)
+      .then(function () { return cargarRegistrosDelAnio(anioActivo); })
+      .then(function () {
+        setStatus("Registro del d\u00eda " + formatoFechaLegible(fechaDiaEnEdicion) + " eliminado.", "ok");
+        cerrarModalDia();
+        renderCalendario();
+        if (vistaActiva === "balance") renderBalanceAnual();
+      })
+      .catch(function (err) {
+        console.error(err);
+        mostrarErrorDia("Error al eliminar: " + err.message);
+      });
+  });
+
+  /* =========================================================
+     CAMBIO DE ANIO ACTIVO
+     ========================================================= */
+
+  function cargarRegistrosDelAnio(anio) {
+    return getAllByIndex(STORE_REGISTROS, "por_anio", anio).then(function (lista) {
+      registrosCache = lista;
+      return lista;
+    });
+  }
+
+  function cambiarAnioActivo(nuevoAnio, mantenerMes) {
+    anioActivo = nuevoAnio;
+    if (!mantenerMes) mesActivo = new Date().getMonth() + 1;
+    inputFestivoFecha.min = toISODate(anioActivo, 1, 1);
+    inputFestivoFecha.max = toISODate(anioActivo, 12, 31);
+
+    Promise.all([cargarConfigDelAnio(anioActivo), cargarFestivosDelAnio(anioActivo), cargarRegistrosDelAnio(anioActivo)])
+      .then(function () {
+        setStatus("Datos del a\u00f1o " + anioActivo + " cargados.", "ok");
+        renderCalendario();
+        if (vistaActiva === "balance") renderBalanceAnual();
+      })
+      .catch(function (err) {
+        console.error(err);
+        setStatus("Error al cargar datos del a\u00f1o " + anioActivo + ": " + err.message, "error");
+      });
+  }
+
+  inputYear.addEventListener("change", function () {
+    const year = parseInt(inputYear.value, 10);
+    if (!isNaN(year) && year >= 1900 && year <= 2200) cambiarAnioActivo(year);
+  });
+
+  /* =========================================================
+     ARRANQUE DE LA APLICACION
+     ========================================================= */
+
+  inputYear.value = anioActivo;
+  renderCalendarioDow();
+  aplicarColoresAlDOM(coloresCache);
+  renderLeyenda();
+
+  initDB()
+    .then(function () {
+      setStatus("Base de datos inicializada. Cargando datos del a\u00f1o " + anioActivo + "...", "ok");
+
+      window.ControlHorarioDB = {
+        initDB: initDB, getRecord: getRecord, putRecord: putRecord, deleteRecord: deleteRecord,
+        getAllByIndex: getAllByIndex, getAllRecords: getAllRecords,
+        STORE_CONFIG: STORE_CONFIG, STORE_FESTIVOS: STORE_FESTIVOS, STORE_REGISTROS: STORE_REGISTROS
+      };
+      window.ControlHorarioLogica = {
+        getSemanaSanIsidro: getSemanaSanIsidro, getPeriodoEstival: getPeriodoEstival,
+        getHorasTeoricasDia: getHorasTeoricasDia, calcularHorasSindicalesFranja: calcularHorasSindicalesFranja,
+        clasificarDiaPorSindical: clasificarDiaPorSindical, getPatronDelMes: getPatronDelMes,
+        getModalidadDia: getModalidadDia, calcularHorasRealesDia: calcularHorasRealesDia,
+        calcularDesfaseDia: calcularDesfaseDia, calcularBalanceAnual: calcularBalanceAnual,
+        calcularEstadoPlanificacion: calcularEstadoPlanificacion
+      };
+
+      cambiarAnioActivo(anioActivo);
+    })
+    .catch(function (err) {
+      console.error("Error al inicializar IndexedDB:", err);
+      setStatus("Error al inicializar la base de datos: " + err.message, "error");
+    });
+
+})();
+</script>
+
+</body>
+</html>
